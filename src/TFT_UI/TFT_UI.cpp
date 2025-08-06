@@ -9,8 +9,11 @@ TFT_UI::TFT_UI(TFT_eSPI *tft, TFT_eSprite *sprite[4])
         _sprite[i] = sprite[i];
         taskData[i].instance = this;
     }
+    globalSizeText = 1;
     borderColorGlobal = TFT_YELLOW;
     fillColorGlobal = TFT_BLACK;
+    globalDatum = MC_DATUM;
+    
 }
 
 void TFT_UI::setRenderDirection(bool vertical)
@@ -25,7 +28,7 @@ void TFT_UI::drawBackground(const uint16_t *image)
 
 void TFT_UI::drawText(String text, int x, int y)
 {
-    textQueue.push_back({text, x, y});
+    textQueue.push_back({text, x, y, globalDatum,globalColorText,globalFontStyle});
 }
 void TFT_UI::drawBox(int x, int y, int w, int h, int r, uint16_t color)
 {
@@ -39,8 +42,11 @@ void TFT_UI::drawBorder(int x, int y, int w, int h, int r, uint16_t color, uint8
 {
     borderQueue.push_back({x, y, w, h, r, color, thickness});
 }
-
-void TFT_UI::setTextStyle(int datum, uint16_t colorText, const GFXfont *fontStyle)
+void TFT_UI::setTextStyle(int size, uint16_t color){
+  globalSizeText = size;
+   globalColorText = color;
+}
+void TFT_UI::setFontStyle(int datum, uint16_t colorText, const GFXfont *fontStyle)
 {
     globalDatum = datum;
     globalColorText = colorText;
@@ -117,14 +123,13 @@ void TFT_UI::drawRender()
     boxQueue.clear();
     CircleQueue.clear();
     borderQueue.clear();
+    iconQueue.clear();
 }
 
 void TFT_UI::sendGraphics(int id, int baseX, int baseY){
       // Draw text
-  _sprite[id]->setTextDatum(globalDatum);
-  _sprite[id]->setFreeFont(globalFontStyle);
-  _sprite[id]->setTextColor(globalColorText);
 
+  _sprite[id]->setTextSize(globalSizeText);
   // Draw boxes
   for (auto &box : boxQueue) {
     _sprite[id]->fillRoundRect(baseX + box.x, baseY + box.y, box.w, box.h, box.r, box.color);
@@ -152,9 +157,27 @@ for (auto &border : borderQueue) {
 }
 
   for (auto &item : textQueue) {
+      _sprite[id]->setTextDatum(item.datum);
+    _sprite[id]->setFreeFont(item.fontStyle);
+    _sprite[id]->setTextColor(item.colorText);
     _sprite[id]->drawString(item.text, baseX + item.x, baseY + item.y);
   }
 
+  for (auto &icon : iconQueue) {
+  for (int y = 0; y < icon.imgH; y++) {
+    for (int x = 0; x < icon.imgW; x++) {
+      int idx = y * icon.imgW + x;
+      uint16_t color = icon.imageData[idx];
+      if (color != icon.transparentColor) {
+        _sprite[id]->drawPixel(
+          baseX + icon.x + x - icon.imgW / 2,
+          baseY + icon.y + y - icon.imgH / 2,
+          color
+        );
+      }
+    }
+  }
+}
 }
 
 void TFT_UI::tileRenderTask(void *parameter){
@@ -309,4 +332,25 @@ uint16_t TFT_UI::hexTo565(uint32_t hexColor) {
   uint8_t b = hexColor & 0xFF;
 
   return _tft->color565(r, g, b);
+}
+
+
+void TFT_UI::drawIcon(int x, int y ,int pixel_W,int pixel_H,const uint16_t *icon_data, uint16_t transparrent_color){
+
+  iconQueue.push_back({x,y,pixel_W,pixel_H,icon_data,transparrent_color});
+  
+  // const int img_h = 40;
+                  // const int ing_w = 40;
+                  // for (int y = 0; y < img_h; y++)
+                  // {
+                  //   for (int x = 0; x < img_h; x++)
+                  //   {
+                  //     int idx = y * img_h + x;
+                  //     uint16_t color = image_data_DatabaseLogo[idx];
+                  //     if (color != 0x0000)
+                  //     { // treat 0x0000 as transparent
+                  //       sprite.drawPixel(centerX + x - 70 - mqttIMGW / 2, centerY + 25 + y - mqttIMGH / 2, color);
+                  //     }
+                  //   }
+                  // }
 }
