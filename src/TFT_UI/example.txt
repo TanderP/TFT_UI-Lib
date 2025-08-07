@@ -45,19 +45,16 @@ void loop()
   unsigned long now = millis();
   if (now - lastFrameTime > 0)
   {
-    fps = 1000 / float(now - lastFrameTime);
+    fps = 1000 / (now - lastFrameTime);
   }
 
 
-  //ui.drawBackground(image_data_Landscapeyellowflower480x320verti2);
-ui.fillBackground(ui.hexTo565(0xFCB32C));
- // ui.drawBox(-160,-240,320,480,0,ui.hexTo565(0xFCB32C));
+  ui.drawBackground(image_data_Landscapeyellowflower480x320verti2);
   //ui.drawBox(0, 0, 80, 80, 10, TFT_RED);
-  //ui.setTextStyle(2, TFT_CYAN);
+  ui.setTextStyle(2, TFT_CYAN);
   ui.setFontStyle(MC_DATUM,TFT_WHITE,&FreeSansBold9pt7b);
   // Draw FPS text (top-left corner)
-  String fpsText = "FPS: " + String(fps, 3);  // 1 decimal place
-
+  String fpsText = "FPS: " + String(fps);
   //ui.hexTo565();
   std::vector<String> menuItems = {"0","1","2","3","4","5","6","7","8"};
   

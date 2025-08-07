@@ -18,7 +18,7 @@ public:
     uint16_t hexTo565(uint32_t hexColor);
 
     void init(int screenW, int screenH, int divW, int divH);
-
+    void fillBackground(uint16_t fillColor);
     void drawBackground(const uint16_t *image);
 
     void drawText(String text, int x, int y);
@@ -43,7 +43,7 @@ public:
                   int spacingX, int spacingY,
                   const std::vector<String> &titles);
 
-    uint16_t getTileColor(int tileX, int tileY);
+    uint16_t getTileColor(int x, int y);
 
     void drawRender();
 
@@ -135,7 +135,10 @@ private:
     uint16_t globalColorText;
     int globalSizeText;
     const GFXfont *globalFontStyle;
-
+    uint32_t globalFill;
     float fps = 0.0;
+
+    bool useBackground;
+    bool coloredBackground;
 };
 #endif

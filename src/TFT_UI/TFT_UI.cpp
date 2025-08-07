@@ -3,67 +3,70 @@
 TFT_UI::TFT_UI(TFT_eSPI *tft, TFT_eSprite *sprite[4])
 {
 
-    _tft = tft;
-    for (int i = 0; i < 4; i++)
-    {
-        _sprite[i] = sprite[i];
-        taskData[i].instance = this;
-    }
-    globalSizeText = 1;
-    borderColorGlobal = TFT_YELLOW;
-    fillColorGlobal = TFT_BLACK;
-    globalDatum = MC_DATUM;
-    
+  _tft = tft;
+  for (int i = 0; i < 4; i++)
+  {
+    _sprite[i] = sprite[i];
+    taskData[i].instance = this;
+  }
+  globalSizeText = 1;
+  borderColorGlobal = TFT_YELLOW;
+  fillColorGlobal = TFT_BLACK;
+  globalDatum = MC_DATUM;
+  useBackground = false;
+  coloredBackground = false;
 }
 
 void TFT_UI::setRenderDirection(bool vertical)
 {
-    renderVertically = vertical;
+  renderVertically = vertical;
 }
 
 void TFT_UI::drawBackground(const uint16_t *image)
 {
-    currentBackground = image;
+  currentBackground = image;
+  useBackground = true;
 }
 
 void TFT_UI::drawText(String text, int x, int y)
 {
-    textQueue.push_back({text, x, y, globalDatum,globalColorText,globalFontStyle});
+  textQueue.push_back({text, x, y, globalDatum, globalColorText, globalFontStyle});
 }
 void TFT_UI::drawBox(int x, int y, int w, int h, int r, uint16_t color)
 {
-    boxQueue.push_back({x, y, w, h, r, color});
+  boxQueue.push_back({x, y, w, h, r, color});
 }
 void TFT_UI::drawCircle(int x, int y, int r, uint16_t color)
 {
-    CircleQueue.push_back({x, y, r, color});
+  CircleQueue.push_back({x, y, r, color});
 }
 void TFT_UI::drawBorder(int x, int y, int w, int h, int r, uint16_t color, uint8_t thickness)
 {
-    borderQueue.push_back({x, y, w, h, r, color, thickness});
+  borderQueue.push_back({x, y, w, h, r, color, thickness});
 }
-void TFT_UI::setTextStyle(int size, uint16_t color){
+void TFT_UI::setTextStyle(int size, uint16_t color)
+{
   globalSizeText = size;
-   globalColorText = color;
+  globalColorText = color;
 }
 void TFT_UI::setFontStyle(int datum, uint16_t colorText, const GFXfont *fontStyle)
 {
-    globalDatum = datum;
-    globalColorText = colorText;
-    globalFontStyle = fontStyle;
+  globalDatum = datum;
+  globalColorText = colorText;
+  globalFontStyle = fontStyle;
 }
 
 void TFT_UI::drawMenuSet(int offsetX, int offsetY)
 {
-    menuOffsetX = offsetX;
-    menuOffsetY = offsetY;
+  menuOffsetX = offsetX;
+  menuOffsetY = offsetY;
 }
 
 void TFT_UI::drawMenuHighlight(uint16_t fillColor, uint16_t borderColor, int select)
 {
-    borderColorGlobal = borderColor;
-    fillColorGlobal = fillColor;
-    selectedOption = select;
+  borderColorGlobal = borderColor;
+  fillColorGlobal = fillColor;
+  selectedOption = select;
 }
 
 void TFT_UI::drawMenu(int rows, int cols,
@@ -75,188 +78,230 @@ void TFT_UI::drawMenu(int rows, int cols,
                       int spacingX, int spacingY,
                       const std::vector<String> &titles)
 {
-    int totalItems = rows * cols;
+  int totalItems = rows * cols;
 
-    int menuWidth = cols * tileW + (cols - 1) * spacingX;
-    int menuHeight = rows * tileH + (rows - 1) * spacingY;
+  int menuWidth = cols * tileW + (cols - 1) * spacingX;
+  int menuHeight = rows * tileH + (rows - 1) * spacingY;
 
-    int startX = -menuWidth / 2 + tileW / 2 + menuOffsetX;
-    int startY = -menuHeight / 2 + tileH / 2 + menuOffsetY;
+  int startX = -menuWidth / 2 + tileW / 2 + menuOffsetX;
+  int startY = -menuHeight / 2 + tileH / 2 + menuOffsetY;
 
-    for (int i = 0; i < totalItems; i++)
+  for (int i = 0; i < totalItems; i++)
+  {
+    int row = i / cols;
+    int col = i % cols;
+
+    int centerX = startX + col * (tileW + spacingX);
+    int centerY = startY + row * (tileH + spacingY);
+    int topLeftX = centerX - (tileW / 2);
+    int topLeftY = centerY - (tileH / 2);
+
+    drawBox(topLeftX, topLeftY, tileW, tileH, cornerR, fillColor);
+    drawBorder(topLeftX, topLeftY, tileW, tileH, cornerR, borderColor, borderThickness);
+    if (i == selectedOption)
     {
-        int row = i / cols;
-        int col = i % cols;
-
-        int centerX = startX + col * (tileW + spacingX);
-        int centerY = startY + row * (tileH + spacingY);
-        int topLeftX = centerX - (tileW / 2);
-        int topLeftY = centerY - (tileH / 2);
-
-        drawBox(topLeftX, topLeftY, tileW, tileH, cornerR, fillColor);
-        drawBorder(topLeftX, topLeftY, tileW, tileH, cornerR, borderColor, borderThickness);
-        if (i == selectedOption)
-        {
-            drawBox(topLeftX, topLeftY, tileW, tileH, cornerR, fillColorGlobal);
-            drawBorder(topLeftX, topLeftY, tileW, tileH, cornerR, borderColorGlobal, borderThickness);
-        }
-
-        if (i < titles.size())
-        {
-            drawText(titles[i], centerX, centerY);
-        }
+      drawBox(topLeftX, topLeftY, tileW, tileH, cornerR, fillColorGlobal);
+      drawBorder(topLeftX, topLeftY, tileW, tileH, cornerR, borderColorGlobal, borderThickness);
     }
+
+    if (i < titles.size())
+    {
+      drawText(titles[i], centerX, centerY);
+    }
+  }
 }
 void TFT_UI::drawRender()
 {
-    for (int i = 0; i < NUM_SECTIONS; i++)
-    {
-        xTaskNotifyGive(tileTaskHandles[i]);
-    }
+  for (int i = 0; i < NUM_SECTIONS; i++)
+  {
+    xTaskNotifyGive(tileTaskHandles[i]);
+  }
 
-    for (int i = 0; i < NUM_SECTIONS; i++)
-    {
-        xSemaphoreTake(renderCompleteSemaphore, portMAX_DELAY);
-    }
+  for (int i = 0; i < NUM_SECTIONS; i++)
+  {
+    xSemaphoreTake(renderCompleteSemaphore, portMAX_DELAY);
+  }
 
-    textQueue.clear();
-    boxQueue.clear();
-    CircleQueue.clear();
-    borderQueue.clear();
-    iconQueue.clear();
+  textQueue.clear();
+  boxQueue.clear();
+  CircleQueue.clear();
+  borderQueue.clear();
+  iconQueue.clear();
 }
 
-void TFT_UI::sendGraphics(int id, int baseX, int baseY){
-      // Draw text
+void TFT_UI::sendGraphics(int id, int baseX, int baseY)
+{
+  // Draw text
 
   _sprite[id]->setTextSize(globalSizeText);
   // Draw boxes
-  for (auto &box : boxQueue) {
+  for (auto &box : boxQueue)
+  {
     _sprite[id]->fillRoundRect(baseX + box.x, baseY + box.y, box.w, box.h, box.r, box.color);
   }
 
-    for (auto &circle : CircleQueue) {
+  for (auto &circle : CircleQueue)
+  {
     _sprite[id]->fillCircle(baseX + circle.x, baseY + circle.y, circle.r, circle.color);
   }
   // Draw borders
-// Draw borders with fixed rounded corner gaps
-for (auto &border : borderQueue) {
-  for (int i = 0; i < border.thickness; ++i) {
-    int shrink = i;
-    int radius = max(border.r - i, 0);  // Ensure radius doesn't go negative
+  // Draw borders with fixed rounded corner gaps
+  for (auto &border : borderQueue)
+  {
+    for (int i = 0; i < border.thickness; ++i)
+    {
+      int shrink = i;
+      int radius = max(border.r - i, 0); // Ensure radius doesn't go negative
 
-    _sprite[id]->drawRoundRect(
-      baseX + border.x + shrink,
-      baseY + border.y + shrink,
-      border.w - 2 * shrink,
-      border.h - 2 * shrink,
-      radius,
-      border.color
-    );
+      _sprite[id]->drawRoundRect(
+          baseX + border.x + shrink,
+          baseY + border.y + shrink,
+          border.w - 2 * shrink,
+          border.h - 2 * shrink,
+          radius,
+          border.color);
+    }
   }
-}
 
-  for (auto &item : textQueue) {
-      _sprite[id]->setTextDatum(item.datum);
+  for (auto &item : textQueue)
+  {
+    //_sprite[id]->setSwapBytes(false);
+    _sprite[id]->setTextDatum(item.datum);
     _sprite[id]->setFreeFont(item.fontStyle);
     _sprite[id]->setTextColor(item.colorText);
     _sprite[id]->drawString(item.text, baseX + item.x, baseY + item.y);
   }
 
-  for (auto &icon : iconQueue) {
-  for (int y = 0; y < icon.imgH; y++) {
-    for (int x = 0; x < icon.imgW; x++) {
-      int idx = y * icon.imgW + x;
-      uint16_t color = icon.imageData[idx];
-      if (color != icon.transparentColor) {
-        _sprite[id]->drawPixel(
-          baseX + icon.x + x - icon.imgW / 2,
-          baseY + icon.y + y - icon.imgH / 2,
-          color
-        );
+  for (auto &icon : iconQueue)
+  {
+    for (int y = 0; y < icon.imgH; y++)
+    {
+      for (int x = 0; x < icon.imgW; x++)
+      {
+        int idx = y * icon.imgW + x;
+        uint16_t color = icon.imageData[idx];
+        if (color != icon.transparentColor)
+        {
+          _sprite[id]->drawPixel(
+              baseX + icon.x + x - icon.imgW / 2,
+              baseY + icon.y + y - icon.imgH / 2,
+              color);
+        }
       }
     }
   }
 }
-}
 
-void TFT_UI::tileRenderTask(void *parameter){
+void TFT_UI::tileRenderTask(void *parameter)
+{
   TileTaskData *data = (TileTaskData *)parameter;
   int sectionId = data->sectionId;
 
   _sprite[sectionId]->setColorDepth(16);
   _sprite[sectionId]->createSprite(TILE_W, TILE_H);
 
-  while (true) {
+  while (true)
+  {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    if (renderVertically) {
-      for (int ty = data->start; ty < data->end; ty++) {
-        for (int tx = 0; tx < NUM_COLS; tx++) {
+    if (renderVertically)
+    {
+      for (int ty = data->start; ty < data->end; ty++)
+      {
+        for (int tx = 0; tx < NUM_COLS; tx++)
+        {
           int screenX = tx * TILE_W;
           int screenY = ty * TILE_H;
 
           uint16_t *buf = (uint16_t *)_sprite[sectionId]->getPointer();
 
-          if (currentBackground) {
+          if (useBackground)
+          {
             const uint16_t *src = &currentBackground[(ty * TILE_H) * SCREEN_W + (tx * TILE_W)];
-            for (int y = 0; y < TILE_H; y++) {
-              for (int x = 0; x < TILE_W; x++) {
+            for (int y = 0; y < TILE_H; y++)
+            {
+              for (int x = 0; x < TILE_W; x++)
+              {
                 uint16_t pixel = src[y * SCREEN_W + x];
                 buf[y * TILE_W + x] = (pixel >> 8) | (pixel << 8);
               }
             }
-          } else {
-            for (int y = 0; y < TILE_H; y++) {
-              for (int x = 0; x < TILE_W; x++) {
-                buf[y * TILE_W + x] = getTileColor(screenX + x, screenY + y);
+          }
+          else
+          {
+            for (int y = 0; y < TILE_H; y++)
+            {
+              for (int x = 0; x < TILE_W; x++)
+              {
+
+                uint16_t color = getTileColor(screenX + x, screenY + y);
+                buf[y * TILE_W + x] = (color >> 8) | (color << 8);
+                // _sprite[sectionId]->drawPixel(x, y, getTileColor(screenX + x, screenY + y));
               }
             }
           }
 
           int centerX = (SCREEN_W / 2) - screenX;
           int centerY = (SCREEN_H / 2) - screenY;
-          if (abs(centerX) < SCREEN_W && abs(centerY) < SCREEN_H) {
+          if (abs(centerX) < SCREEN_W && abs(centerY) < SCREEN_H)
+          {
             sendGraphics(sectionId, centerX, centerY);
           }
 
-          if (xSemaphoreTake(tftMutex, portMAX_DELAY) == pdTRUE) {
+          if (xSemaphoreTake(tftMutex, portMAX_DELAY) == pdTRUE)
+          {
             _sprite[sectionId]->pushSprite(screenX, screenY);
             xSemaphoreGive(tftMutex);
           }
         }
       }
-    } else {
-      for (int tx = data->start; tx < data->end; tx++) {
-        for (int ty = 0; ty < NUM_ROWS; ty++) {
+    }
+    else
+    {
+      for (int tx = data->start; tx < data->end; tx++)
+      {
+        for (int ty = 0; ty < NUM_ROWS; ty++)
+        {
           int screenX = tx * TILE_W;
           int screenY = ty * TILE_H;
 
           uint16_t *buf = (uint16_t *)_sprite[sectionId]->getPointer();
 
-          if (currentBackground) {
+          if (useBackground)
+          {
             const uint16_t *src = &currentBackground[(ty * TILE_H) * SCREEN_W + (tx * TILE_W)];
-            for (int y = 0; y < TILE_H; y++) {
-              for (int x = 0; x < TILE_W; x++) {
+            for (int y = 0; y < TILE_H; y++)
+            {
+              for (int x = 0; x < TILE_W; x++)
+              {
                 uint16_t pixel = src[y * SCREEN_W + x];
                 buf[y * TILE_W + x] = (pixel >> 8) | (pixel << 8);
               }
             }
-          } else {
-            for (int y = 0; y < TILE_H; y++) {
-              for (int x = 0; x < TILE_W; x++) {
-                buf[y * TILE_W + x] = getTileColor(screenX + x, screenY + y);
+          }
+          else
+          {
+            for (int y = 0; y < TILE_H; y++)
+            {
+              for (int x = 0; x < TILE_W; x++)
+              {
+
+                //_sprite[sectionId]->drawPixel(x, y, getTileColor(screenX + x, screenY + y));
+                uint16_t color = getTileColor(screenX + x, screenY + y);
+                buf[y * TILE_W + x] = (color >> 8) | (color << 8);
               }
             }
           }
 
           int centerX = (SCREEN_W / 2) - screenX;
           int centerY = (SCREEN_H / 2) - screenY;
-          if (abs(centerX) < SCREEN_W && abs(centerY) < SCREEN_H) {
+          if (abs(centerX) < SCREEN_W && abs(centerY) < SCREEN_H)
+          {
             sendGraphics(sectionId, centerX, centerY);
           }
 
-          if (xSemaphoreTake(tftMutex, portMAX_DELAY) == pdTRUE) {
+          if (xSemaphoreTake(tftMutex, portMAX_DELAY) == pdTRUE)
+          {
             _sprite[sectionId]->pushSprite(screenX, screenY);
             xSemaphoreGive(tftMutex);
           }
@@ -268,13 +313,15 @@ void TFT_UI::tileRenderTask(void *parameter){
   }
 }
 
-void TFT_UI::bufferTileRenderTask(void *parameter){
-TileTaskData *data = static_cast<TileTaskData*>(parameter);
-  TFT_UI* self = data->instance;
-  self->tileRenderTask(parameter);  // ✅ now safe
+void TFT_UI::bufferTileRenderTask(void *parameter)
+{
+  TileTaskData *data = static_cast<TileTaskData *>(parameter);
+  TFT_UI *self = data->instance;
+  self->tileRenderTask(parameter); // ✅ now safe
 }
-void TFT_UI::init(int screenW , int screenH, int divW , int divH){
-    SCREEN_W = screenW;
+void TFT_UI::init(int screenW, int screenH, int divW, int divH)
+{
+  SCREEN_W = screenW;
   SCREEN_H = screenH;
   dividerW = divW;
   dividerH = divH;
@@ -292,41 +339,55 @@ void TFT_UI::init(int screenW , int screenH, int divW , int divH){
   int perSection = totalTiles / NUM_SECTIONS;
   int extra = totalTiles % NUM_SECTIONS;
 
-  for (int i = 0; i < NUM_SECTIONS; i++) {
+  for (int i = 0; i < NUM_SECTIONS; i++)
+  {
     taskData[i].sectionId = i;
     taskData[i].start = i * perSection;
     taskData[i].end = (i + 1) * perSection;
-    if (i == NUM_SECTIONS - 1) {
+    if (i == NUM_SECTIONS - 1)
+    {
       taskData[i].end += extra;
     }
 
     String taskName = "TileTask" + String(i);
     xTaskCreatePinnedToCore(
-      bufferTileRenderTask,
-      taskName.c_str(),
-      4096,
-      &taskData[i],
-      1,
-      &tileTaskHandles[i],
-      i % 2
-    );
+        bufferTileRenderTask,
+        taskName.c_str(),
+        4096,
+        &taskData[i],
+        1,
+        &tileTaskHandles[i],
+        i % 2);
 
     Serial.printf("Created %s for %s %d - %d\n",
-      taskName.c_str(),
-      renderVertically ? "rows" : "cols",
-      taskData[i].start,
-      taskData[i].end - 1
-    );
+                  taskName.c_str(),
+                  renderVertically ? "rows" : "cols",
+                  taskData[i].start,
+                  taskData[i].end - 1);
   }
 }
-uint16_t TFT_UI::getTileColor(int tileX, int tileY)
+uint16_t TFT_UI::getTileColor(int x, int y)
 {
-uint8_t r = (tileX * 70) % 256;
+  int tileX = x / TILE_W;
+  int tileY = y / TILE_H;
+  if (coloredBackground)
+  {
+    //   uint8_t r = (globalFill >> 16) & 0xFF;
+    // uint8_t g = (globalFill >> 8) & 0xFF;
+    // uint8_t b = globalFill & 0xFF;
+
+    uint8_t r = ((globalFill >> 11) & 0x1F) * 255 / 31; // 5 bits red → 8 bits
+    uint8_t g = ((globalFill >> 5) & 0x3F) * 255 / 63;  // 6 bits green → 8 bits
+    uint8_t b = (globalFill & 0x1F) * 255 / 31;         // 5 bits blue → 8 bits
+    return _tft->color565(r, g, b);
+  }
+  uint8_t r = (tileX * 70) % 256;
   uint8_t g = (tileY * 120) % 256;
   uint8_t b = (tileX * tileY * 45) % 256;
   return _tft->color565(r, g, b);
 }
-uint16_t TFT_UI::hexTo565(uint32_t hexColor) {
+uint16_t TFT_UI::hexTo565(uint32_t hexColor)
+{
   uint8_t r = (hexColor >> 16) & 0xFF;
   uint8_t g = (hexColor >> 8) & 0xFF;
   uint8_t b = hexColor & 0xFF;
@@ -334,23 +395,15 @@ uint16_t TFT_UI::hexTo565(uint32_t hexColor) {
   return _tft->color565(r, g, b);
 }
 
+void TFT_UI::drawIcon(int x, int y, int pixel_W, int pixel_H, const uint16_t *icon_data, uint16_t transparrent_color)
+{
 
-void TFT_UI::drawIcon(int x, int y ,int pixel_W,int pixel_H,const uint16_t *icon_data, uint16_t transparrent_color){
+  iconQueue.push_back({x, y, pixel_W, pixel_H, icon_data, transparrent_color});
+}
 
-  iconQueue.push_back({x,y,pixel_W,pixel_H,icon_data,transparrent_color});
-  
-  // const int img_h = 40;
-                  // const int ing_w = 40;
-                  // for (int y = 0; y < img_h; y++)
-                  // {
-                  //   for (int x = 0; x < img_h; x++)
-                  //   {
-                  //     int idx = y * img_h + x;
-                  //     uint16_t color = image_data_DatabaseLogo[idx];
-                  //     if (color != 0x0000)
-                  //     { // treat 0x0000 as transparent
-                  //       sprite.drawPixel(centerX + x - 70 - mqttIMGW / 2, centerY + 25 + y - mqttIMGH / 2, color);
-                  //     }
-                  //   }
-                  // }
+void TFT_UI::fillBackground(uint16_t fillColor)
+{
+  globalFill = fillColor;
+  coloredBackground = true;
+  useBackground = false;
 }
